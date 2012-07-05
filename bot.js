@@ -1,56 +1,70 @@
-const path = require( "path" )
-    , fmt  = require( "util" ).format
-    , irc  = require( "irc" )
-    , seen = require( "./plugins/seen" )
-    , tell = require( "./plugins/tell" )
-    , IRC  = irc.IRC
+const path    = require( "path" )
+    , fmt     = require( "util" ).format
+    , irc     = require( "irc-js" )
+    , Client  = irc.Client
 
 const conf = path.join( __dirname, process.argv[2] || "config.json" )
 
-const bot = new IRC( conf )
+const logger = irc.logger.get( "ircjs" )
 
-// Add "plugins" :)
-// @todo {jonas} Make a proper plugin interface, either here or in IRC-js
-seen.register( bot )
-tell.register( bot )
+// I'll just let this live here until I know where they should be.
+const plugins = {}
+const pluginPath = path.join( __dirname, "plugins" )  // Should go in config perhaps?
 
-bot.connect( function( srv ) {
-  // Perhaps change `channels.add()` to return `this`,
-  // so that you can `channels.add( "#foo" ).add( "#bar" ).add( "#baz" )`
-  // Also, make it possible to specify default channels in conf.
-  bot.channels.add( "#html5" )
-  bot.channels.add( "#jquery" )
-  bot.channels.add( "#jquery-dev" )
-  bot.channels.add( "#jquery-meeting" )
-  bot.channels.add( "#jquery-ot" )
-  bot.channels.add( "#runlevel6" )
+const client = new Client( conf )
+
+client.connect( function( srv ) {
+  client.config.channels.forEach( function( cn ) {
+    client.channels.add( cn )
+  })
+  client.config.plugins.forEach( function( plugName ) {
+    const plugin = require( path.join( pluginPath, plugName ) )
+        // Hmm, I don't like having to create a new one for each plugin...
+        , mediator = new Mediator( client, plugin )
+    const status = plugin.load( mediator )
+    if ( irc.STATUS.SUCCESS ) {
+      logger.log( irc.LEVEL.DEBUG, fmt( "Plugin %s loaded successfully", plugin.name ) )
+      plugins[ plugin.name ] = plugin
+    } else
+      logger.log( irc.LEVEL.DEBUG, fmt( "Plugin %s failed to load", plugin.name ) )
+  })
 })
 
-bot.lookFor( fmt( " *@?%s *:? *(you(?:['’]?re)?|u(?: r)|ur?) +([^?]+)", bot.user.nick )
-           , function( msg, you, remark ) {
+client.observe( irc.EVENT.DISCONNECT, function( msg ) {
+  var k;
+  for ( k in plugins )
+    if ( plugins.hasOwnProperty( k ) ) {
+      plugins[ k ].eject()
+      delete plugins[ k ]
+    }
+  process.exit()  // @todo wait for plugins to signal?
+})
+
+client.lookFor( fmt( "%s.+\\b(you(?:['’]?re)?|u(?: r)|ur?) +([^?]+)", client.user.nick )
+              , function( msg, you, remark ) {
   const wittyReply = fmt( "%s, no %s %s", msg.from.nick
                         , you.toUpperCase(), remark )
   msg.reply( wittyReply )
 })
 
-bot.observe( irc.COMMAND.INVITE, function( msg ) {
+client.observe( irc.COMMAND.INVITE, function( msg ) {
   // Some clients send chan name as a trailing param :(
   const name = msg.params[1].replace( /^:/, "" )
-  bot.channels.add( name, function( ch, err ) {
+  client.channels.add( name, function( ch, err ) {
     if ( err )
       return
     ch.say( fmt( "Thanks for inviting me, %s", msg.from.nick ) )
   })
 })
 
-bot.lookFor( fmt( "@?%s[: ]+(?:quit|shutdown|die|disconnect) ?(.+)?", bot.user.nick )
+client.lookFor( fmt( "%s.+\\b(?:quit|shutdown|die|disconnect) ?(.+)?", client.user.nick )
            , function( msg, partingWords ) {
-  bot.quit( partingWords || fmt( "%s told me to quit, goodbye!", msg.from.nick ) )
+  client.quit( partingWords || fmt( "%s told me to quit, goodbye!", msg.from.nick ) )
 })
 
-bot.lookFor( fmt( "@?%s[: ]+(?:part|leave|gtfo)(?: +([+!#&][^ ]+))?(?: (.+))?", bot.user.nick )
+client.lookFor( fmt( "%s.+\\b(?:part|leave|gtfo)(?: +([+!#&][^ ]+))?(?: (.+))?", client.user.nick )
            , function( msg, name, txt ) {
-  const chan = bot.channels.get( name || msg.params[0] )
+  const chan = client.channels.get( name || msg.params[0] )
       , from = msg.from.nick
   if ( ! chan )
     return msg.reply( fmt( "%s, I’m not in %s.", from, name ) )
@@ -59,16 +73,16 @@ bot.lookFor( fmt( "@?%s[: ]+(?:part|leave|gtfo)(?: +([+!#&][^ ]+))?(?: (.+))?", 
     msg.reply( fmt( "%s, I have left %s.", from, chan.name ) )
 })
 
-bot.lookFor( fmt( "@?%s[: ]+(?:join|add) +([+!#&][^ ]+)(?: +([^ ]+))?", bot.user.nick )
-           , function( msg, name, key ) {
-  const chan = bot.channels.get( name )
+client.lookFor( fmt( "%s.+\\b(?:join|add) +([+!#&][^ ]+)(?: +([^ ]+))?", client.user.nick )
+              , function( msg, name, key ) {
+  const chan = client.channels.get( name )
       , from = msg.from.nick
   if ( chan && chan.name === msg.params[0] )
     return msg.reply( fmt( "%s, I am already here!", from ) )
   else if ( chan )
     return msg.reply( fmt( "%s, I am already in %s, and I can prove it. The topic is as follows. %s"
                          , from, name, chan.topic || "Hmm, appears to be empty." ) )
-  bot.channels.add( name, key, function( chan, err ) {
+  client.channels.add( name, key, function( chan, err ) {
     if ( err ) {
       msg.reply( fmt( "%s, there was an error when I tried to join %s. Server said “%s”.", from, name, err.message ) )
       return
@@ -77,10 +91,87 @@ bot.lookFor( fmt( "@?%s[: ]+(?:join|add) +([+!#&][^ ]+)(?: +([^ ]+))?", bot.user
   })
 })
 
-bot.lookFor( fmt( "@?%s[: ]+(?:say) +([+!#&][^ ]+) +(.+)", bot.user.nick )
+client.lookFor( fmt( "%s.+\\b(?:say) +([+!#&][^ ]+) +(.+)", client.user.nick )
            , function( msg, chan, stuff ) {
-  const ch = bot.channels.get( chan )
+  const ch = client.channels.get( chan )
   if ( ch )
     return ch.say( stuff )
   msg.reply( fmt( "%s, I’m not in %s.", msg.from.nick, chan ) )
 })
+
+client.lookFor( fmt( "%s.+\\b(?:help)", client.user.nick )
+              , function( msg, chan, stuff ) {
+  msg.reply( fmt( "%s, I offer no help, yet. Help me help you: "
+                + "https://github.com/nlogax/ircjsbot/blob/master/%s#L%s"
+                , msg.from.nick, path.basename( __filename ), module.__linenumber - 4 ) )
+})
+
+/** Since we don't have interfaces or equivalent, the imaginary Plugin interface is described here.
+    Each plugin is a module, exporting itself as the module object. It may use submodules internally.
+
+    This object should implement the following interface:
+
+      @property {string}                        name
+        Human-readable plugin name. If not present, the module name is used.
+        Currently only used when publically shaming buggy plugins.
+
+      @property {function(Client):irc.STATUS}   load
+        Perform required initialization work, if any. Return an irc.STATUS so we know how it went.
+
+      @property {function(Client):irc.STATUS}   eject
+        Perform finalization work, e.g. disconnect from DB, close file handles, etc.
+        If you're an overachiever, perhaps use the log generously, and collect it here.
+        Return an appropriate irc.STATUS.
+ */
+
+/** @constructor This is ugly, but the general idea seems nice.
+ *  Goes between the Client instance and the plugin, adding a tiny bit of safety.
+ *  @param {Client} client
+ *  @param {Plugin} plugin
+ */
+const Mediator = function( client, plugin ) {
+  // Show some stuuuff...
+  this.user = client.user
+  this.channels = client.channels
+
+  this.observe = function( cmd, cb ) {
+    client.observe( cmd, function( msg ) {
+      try {
+        cb.apply( cb, arguments )
+      } catch ( e ) {
+        logger.log( irc.LEVEL.DEBUG, e, e.stack )
+        msg.reply( fmt( "Plugin %s threw an error: %s"
+          , plugin.name, e.toString() ) )
+      }
+    } )
+  }
+
+  this.lookFor = function(/* cmd, pattern, cb */) {
+    const args = []
+    args.push.apply( args, arguments )
+    const cb = args.pop()
+    const safecb = function( /*oldcb, args...*/ ) {
+      try {
+        cb.apply( cb, arguments )
+      } catch ( e ) {
+        logger.log( irc.LEVEL.DEBUG, e, e.stack )
+        msg.reply( fmt( "Plugin %s threw an error: %s"
+          , plugin.name, e.toString() ) )
+      }
+    }
+    args.push( safecb )
+    client.lookFor.apply( client, args )
+  }
+}
+
+// I'll hide this and my shame down here.
+Object.defineProperty( module, "__linenumber", { get: function() {
+  const e = new Error()
+      , l = e.stack.split( '\n' )
+  var i = l.length
+  while ( i-- ) {
+    if ( -1 === l[ i ].indexOf( __filename ) )
+      continue
+    return l[ i ].split( ':' )[ 1 ]
+  }
+} } )

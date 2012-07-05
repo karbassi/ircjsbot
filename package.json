@@ -1,0 +1,19 @@
+{ "name" : "ircjsbot"
+, "description" : "IRC bot built for testing an experimental branch of IRC-js"
+, "author" : "Jonas Westerlund <jonas.westerlund@me.com> (http://jonaswesterlund.se)"
+, "contributors" : []
+, "homepage" : "https://github.com/nlogax/ircjsbot"
+, "version" : "0.1"
+, "main" : "./bot.js"
+, "directories" : {}
+, "engines" : { "node" : ">=0.8.1" }
+, "dependencies" :
+  { "irc-js" : ">=2.0.0"
+  }
+, "repository" :
+  { "type" : "git"
+  , "url" : "git://github.com/nlogax/ircjsbot.git"
+  }
+, "license" :
+  { "type" : "Public Domain" }
+}
