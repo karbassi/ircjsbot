@@ -3,12 +3,13 @@
 , "author" : "Jonas Westerlund <jonas.westerlund@me.com> (http://jonaswesterlund.se)"
 , "contributors" : []
 , "homepage" : "https://github.com/nlogax/ircjsbot"
-, "version" : "0.1"
+, "version" : "0.1.0"
 , "main" : "./bot.js"
 , "directories" : {}
 , "engines" : { "node" : ">=0.8.1" }
 , "dependencies" :
-  { "irc-js" : ">=2.0.0"
+  { "irc-js" : "git://github.com/gf3/IRC-js.git#nlogax/experimental"
+  , "redis" : ">=0.7.2"
   }
 , "repository" :
   { "type" : "git"

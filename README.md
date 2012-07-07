@@ -1,13 +1,8 @@
 # About
 This is an IRC client/bot, its main purpose is to test the [experimental branch](https://github.com/gf3/IRC-js/tree/nlogax/experimental) of IRC-js.
 
-## Prerequisites
-You will need [IRC-js](https://github.com/gf3/IRC-js/tree/nlogax/experimental), make sure to use the experimental branch.
-I don't know how to make `npm` understand that, so you will likely have to install it manually.
-The easiest way is probably to create a `node_modules` folder, in your IRC bot folder, then clone IRC-js into a subfolder named `irc-js`.
-Also, remember to checkout the experimental branch.
-You will need a version of Node that supports the `--harmony_collections` V8 option. I don't know when that was added, but it's in `0.8.1` at least.
-It is easy to build from source, should your package manager not provide a recent enough version.
+## Installation
+Clone the repository, run `npm install` in the root folder of the repository.
 
 ## Usage
 The configuration file, [`config.json`](/nlogax/ircjsbot/blob/master/config.json), lets you specify default channels to join, nickname, etc.
