@@ -15,7 +15,7 @@ const client = new Client( conf )
 
 client.connect( function( srv ) {
   client.config.channels.forEach( function( cn ) {
-    client.channels.add( cn )
+    client.join( cn )
   })
   client.config.plugins.forEach( function( plugName ) {
     const plugin = require( path.join( pluginPath, plugName ) )
@@ -64,7 +64,7 @@ client.lookFor( fmt( "%s.+\\b(?:quit|shutdown|die|disconnect) ?(.+)?", client.us
 
 client.lookFor( fmt( "%s.+\\b(?:part|leave|gtfo)(?: +([+!#&][^ ]+))?(?: (.+))?", client.user.nick )
            , function( msg, name, txt ) {
-  const chan = client.channels.get( name || msg.params[0] )
+  const chan = client.channels.get( irc.id( name || msg.params[0] ) )
       , from = msg.from.nick
   if ( ! chan )
     return msg.reply( fmt( "%s, I’m not in %s.", from, name ) )
@@ -75,7 +75,7 @@ client.lookFor( fmt( "%s.+\\b(?:part|leave|gtfo)(?: +([+!#&][^ ]+))?(?: (.+))?",
 
 client.lookFor( fmt( "%s.+\\b(?:join|add) +([+!#&][^ ]+)(?: +([^ ]+))?", client.user.nick )
               , function( msg, name, key ) {
-  const chan = client.channels.get( name )
+  const chan = client.channels.get( irc.id( name ) )
       , from = msg.from.nick
   if ( chan && chan.name === msg.params[0] )
     return msg.reply( fmt( "%s, I am already here!", from ) )
@@ -93,7 +93,7 @@ client.lookFor( fmt( "%s.+\\b(?:join|add) +([+!#&][^ ]+)(?: +([^ ]+))?", client.
 
 client.lookFor( fmt( "%s.+\\b(?:say) +([+!#&][^ ]+) +(.+)", client.user.nick )
            , function( msg, chan, stuff ) {
-  const ch = client.channels.get( chan )
+  const ch = client.channels.get( irc.id( chan ) )
   if ( ch )
     return ch.say( stuff )
   msg.reply( fmt( "%s, I’m not in %s.", msg.from.nick, chan ) )
@@ -150,7 +150,7 @@ const Mediator = function( client, plugin ) {
     const args = []
     args.push.apply( args, arguments )
     const cb = args.pop()
-    const safecb = function( /*oldcb, args...*/ ) {
+        , safecb = function( msg /*oldcb, args...*/ ) {
       try {
         cb.apply( cb, arguments )
       } catch ( e ) {
