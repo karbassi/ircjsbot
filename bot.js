@@ -50,7 +50,7 @@ client.lookFor( fmt( "%s.+\\b(you(?:['’]?re)?|u(?: r)|ur?) +([^?]+)", client.u
 client.observe( irc.COMMAND.INVITE, function( msg ) {
   // Some clients send chan name as a trailing param :(
   const name = msg.params[1].replace( /^:/, "" )
-  client.channels.add( name, function( ch, err ) {
+  client.join( name, function( ch, err ) {
     if ( err )
       return
     ch.say( fmt( "Thanks for inviting me, %s", msg.from.nick ) )
@@ -82,7 +82,7 @@ client.lookFor( fmt( "%s.+\\b(?:join|add) +([+!#&][^ ]+)(?: +([^ ]+))?", client.
   else if ( chan )
     return msg.reply( fmt( "%s, I am already in %s, and I can prove it. The topic is as follows. %s"
                          , from, name, chan.topic || "Hmm, appears to be empty." ) )
-  client.channels.add( name, key, function( chan, err ) {
+  client.join( name, key, function( chan, err ) {
     if ( err ) {
       msg.reply( fmt( "%s, there was an error when I tried to join %s. Server said “%s”.", from, name, err.message ) )
       return
