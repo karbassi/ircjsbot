@@ -1,5 +1,6 @@
-/** Assorted commands
- *  Some control the bot, others say silly things.
+/** This plugin is special-cased and gets direct access to the client.
+ *  Unlike other plugins, uncaught errors will therefore crash the client.
+ *  None of these commands are required, they are merely working examples.
  */
 const fmt = require( "util" ).format
     , irc = require( "irc-js" )
