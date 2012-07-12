@@ -20,7 +20,7 @@ client.connect( function( srv ) {
 })
 
 client.observe( irc.EVENT.DISCONNECT, function( msg ) {
-  var k;
+  var k
   for ( k in plugins )
     if ( plugins.hasOwnProperty( k ) ) {
       plugins[ k ].eject()
@@ -107,8 +107,8 @@ if ( client.config[ "plugins" ] )
       logger.log( irc.LEVEL.DEBUG, fmt( "Plugin %s failed to load", plugin.name ) )
   } )
 
-// Core is special
-const corePlugin = require( path.join( plugDir, "core" ) )
+// Core is a privileged plugin.
+const corePlugin = require( path.join( __dirname, "core" ) )
 corePlugin.load( client )
 
 // I'll hide this and my shame down here.
