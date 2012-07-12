@@ -1,5 +1,4 @@
 const path    = require( "path" )
-    , fmt     = require( "util" ).format
     , irc     = require( "irc-js" )
     , Client  = irc.Client
 
@@ -63,9 +62,9 @@ const Mediator = function( client, plugin ) {
       try {
         cb.apply( cb, arguments )
       } catch ( e ) {
-        logger.log( irc.LEVEL.DEBUG, e, e.stack )
-        msg.reply( fmt( "Plugin %s threw an error: %s"
-          , plugin.name, e.toString() ) )
+        logger.debug( e, e.stack )
+        msg.reply( "Plugin %s threw an error: %s"
+          , plugin.name, e.toString() )
       }
     } )
   }
@@ -78,9 +77,9 @@ const Mediator = function( client, plugin ) {
       try {
         cb.apply( cb, arguments )
       } catch ( e ) {
-        logger.log( irc.LEVEL.DEBUG, e, e.stack )
-        msg.reply( fmt( "Plugin %s threw an error: %s"
-          , plugin.name, e.toString() ) )
+        logger.debug( e, e.stack )
+        msg.reply( "Plugin %s threw an error: %s"
+          , plugin.name, e.toString() )
       }
     }
     args.push( safecb )
@@ -101,10 +100,10 @@ if ( client.config[ "plugins" ] )
         , mediator = new Mediator( client, plugin )
     const status = plugin.load( mediator )
     if ( irc.STATUS.SUCCESS ) {
-      logger.log( irc.LEVEL.DEBUG, fmt( "Plugin %s loaded successfully", plugin.name ) )
+      logger.debug( "Plugin %s loaded successfully", plugin.name )
       plugins[ plugin.name ] = plugin
     } else
-      logger.log( irc.LEVEL.DEBUG, fmt( "Plugin %s failed to load", plugin.name ) )
+      logger.debug( "Plugin %s failed to load", plugin.name )
   } )
 
 // Core is a privileged plugin.

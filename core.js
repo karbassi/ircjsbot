@@ -33,10 +33,10 @@ const load = function( client ) {
     const chan = client.channels.get( irc.id( name || msg.params[0] ) )
         , from = msg.from.nick
     if ( ! chan )
-      return msg.reply( fmt( "%s, I’m not in %s.", from, name ) )
+      return msg.reply( "%s, I’m not in %s.", from, name )
     chan.part( txt ? txt.trim() : fmt( "%s told me to leave. Bye!", from ) )
     if ( chan.name !== msg.params[0] )
-      msg.reply( fmt( "%s, I have left %s.", from, chan.name ) )
+      msg.reply( "%s, I have left %s.", from, chan.name )
   })
 
   client.lookFor( fmt( "%s.+\\b(?:join|add) +([+!#&][^ ]+)(?: +([^ ]+))?", client.user.nick )
@@ -44,16 +44,16 @@ const load = function( client ) {
     const chan = client.channels.get( irc.id( name ) )
         , from = msg.from.nick
     if ( chan && chan.name === msg.params[0] )
-      return msg.reply( fmt( "%s, I am already here!", from ) )
+      return msg.reply( "%s, I am already here!", from )
     else if ( chan )
-      return msg.reply( fmt( "%s, I am already in %s, and I can prove it. The topic is as follows. %s"
-                           , from, name, chan.topic || "Hmm, appears to be empty." ) )
+      return msg.reply( "%s, I am already in %s, and I can prove it. The topic is as follows. %s"
+                      , from, name, chan.topic || "Hmm, appears to be empty." )
     client.join( name, key, function( chan, err ) {
       if ( err ) {
-        msg.reply( fmt( "%s, there was an error when I tried to join %s. Server said “%s”.", from, name, err.message ) )
+        msg.reply( "%s, there was an error when I tried to join %s. Server said “%s”.", from, name, err.message )
         return
       }
-      msg.reply( fmt( "%s, I am now in %s%s", from, name, key ? fmt( ", I used “%s” to get in.", key ) : "." ) )
+      msg.reply( "%s, I am now in %s%s", from, name, key ? fmt( ", I used “%s” to get in.", key ) : "." )
     })
   })
 
@@ -62,14 +62,13 @@ const load = function( client ) {
     const ch = client.channels.get( irc.id( chan ) )
     if ( ch )
       return ch.say( stuff )
-    msg.reply( fmt( "%s, I’m not in %s.", msg.from.nick, chan ) )
+    msg.reply( "%s, I’m not in %s.", msg.from.nick, chan )
   })
 
   client.lookFor( fmt( "%s.+\\b(?:help)", client.user.nick )
                 , function( msg, chan, stuff ) {
-    msg.reply( fmt( "%s, I offer no help, yet. Help me help you: "
-                  + "https://github.com/nlogax/ircjsbot/blob/master/%s#L%s"
-                  , msg.from.nick, path.basename( __filename ), module.__linenumber - 4 ) )
+    msg.reply( "%s, I offer no help, yet. Help me help you: https://github.com/nlogax/ircjsbot/blob/master/%s#L%s"
+             , msg.from.nick, path.basename( __filename ), module.__linenumber - 4 )
   })
   return irc.STATUS.SUCCESS
 }
