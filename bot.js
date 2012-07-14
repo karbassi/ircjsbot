@@ -87,6 +87,10 @@ const Mediator = function( client, plugin ) {
   }
 }
 
+// Core is a privileged plugin, with access to full client.
+const corePlugin = require( path.join( __dirname, "core" ) )
+corePlugin.load( client )
+
 /** Load plugins, if any
  *  I want to add `plugDir' to Node's module paths, tried many different ways
  *  but it seems module.js has decided on an array of paths before there's a
@@ -105,19 +109,3 @@ if ( client.config[ "plugins" ] )
     } else
       logger.debug( "Plugin %s failed to load", plugin.name )
   } )
-
-// Core is a privileged plugin.
-const corePlugin = require( path.join( __dirname, "core" ) )
-corePlugin.load( client )
-
-// I'll hide this and my shame down here.
-Object.defineProperty( module, "__linenumber", { get: function() {
-  const e = new Error()
-      , l = e.stack.split( '\n' )
-  var i = l.length
-  while ( i-- ) {
-    if ( -1 === l[ i ].indexOf( __filename ) )
-      continue
-    return l[ i ].split( ':' )[ 1 ]
-  }
-} } )

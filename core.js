@@ -2,8 +2,9 @@
  *  Unlike other plugins, uncaught errors will therefore crash the client.
  *  None of these commands are required, they are merely working examples.
  */
-const fmt = require( "util" ).format
-    , irc = require( "irc-js" )
+const fmt   = require( "util" ).format
+    , path  = require( "path" )
+    , irc   = require( "irc-js" )
  
 const load = function( client ) {
   client.lookFor( fmt( "%s.+\\b(you(?:['’]?re)?|u(?: r)|ur?) +([^?]+)", client.user.nick )
@@ -23,12 +24,12 @@ const load = function( client ) {
     })
   })
 
-  client.lookFor( fmt( "%s.+\\b(?:quit|shutdown|die|disconnect) ?(.+)?", client.user.nick )
+  client.lookFor( fmt( "^:(?:\\b%s\\b[\\s,:]+|[@!\\/?\\.])(?:quit|shutdown|die|disconnect) ?(.+)?", client.user.nick )
              , function( msg, partingWords ) {
     client.quit( partingWords || fmt( "%s told me to quit, goodbye!", msg.from.nick ) )
   })
 
-  client.lookFor( fmt( "%s.+\\b(?:part|leave|gtfo)(?: +([+!#&][^ ]+))?(?: (.+))?", client.user.nick )
+  client.lookFor( fmt( "^:(?:\\b%s\\b[\\s,:]+|[@!\\/?\\.])(?:part|leave|gtfo)(?: +([+!#&][^ ]+))?(?: (.+))?", client.user.nick )
              , function( msg, name, txt ) {
     const chan = client.channels.get( irc.id( name || msg.params[0] ) )
         , from = msg.from.nick
@@ -39,7 +40,7 @@ const load = function( client ) {
       msg.reply( "%s, I have left %s.", from, chan.name )
   })
 
-  client.lookFor( fmt( "%s.+\\b(?:join|add) +([+!#&][^ ]+)(?: +([^ ]+))?", client.user.nick )
+  client.lookFor( fmt( "^:(?:\\b%s\\b[\\s,:]+|[@!\\/?\\.])(?:join) +([+!#&][^ ]+)(?: +([^ ]+))?", client.user.nick )
                 , function( msg, name, key ) {
     const chan = client.channels.get( irc.id( name ) )
         , from = msg.from.nick
@@ -57,7 +58,7 @@ const load = function( client ) {
     })
   })
 
-  client.lookFor( fmt( "%s.+\\b(?:say) +([+!#&][^ ]+) +(.+)", client.user.nick )
+  client.lookFor( fmt( "^:(?:\\b%s\\b[\\s,:]+|[@!\\/?\\.])(?:say) +([+!#&][^ ]+) +(.+)", client.user.nick )
              , function( msg, chan, stuff ) {
     const ch = client.channels.get( irc.id( chan ) )
     if ( ch )
@@ -65,7 +66,7 @@ const load = function( client ) {
     msg.reply( "%s, I’m not in %s.", msg.from.nick, chan )
   })
 
-  client.lookFor( fmt( "%s.+\\b(?:help)", client.user.nick )
+  client.lookFor( fmt( "^:(?:\\b%s\\b[\\s,:]+|[@!\\/?\\.])(?:help)", client.user.nick )
                 , function( msg, chan, stuff ) {
     msg.reply( "%s, I offer no help, yet. Help me help you: https://github.com/nlogax/ircjsbot/blob/master/%s#L%s"
              , msg.from.nick, path.basename( __filename ), module.__linenumber - 4 )
@@ -80,6 +81,18 @@ const eject = function() {
    */
   return irc.STATUS.SUCCESS
 }
+
+// I'll hide this and my shame down here.
+Object.defineProperty( module, "__linenumber", { get: function() {
+  const e = new Error()
+      , l = e.stack.split( '\n' )
+  var i = l.length
+  while ( i-- ) {
+    if ( -1 === l[ i ].indexOf( __filename ) )
+      continue
+    return l[ i ].split( ':' )[ 1 ]
+  }
+} } )
 
 exports.name  = "Core"
 exports.load  = load
