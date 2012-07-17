@@ -8,7 +8,7 @@ const conf    = path.join( __dirname, process.argv[ 2 ] || "config.json" )
     , plugDir = path.join( __dirname, "plugins" )
 
 // I'll just let this live here until I know where they should be.
-const plugins = new Map()
+const plugins = {}
 
 const client = new Client( conf )
 
@@ -60,7 +60,7 @@ const Mediator = function( client, plugin ) {
   this.observe = function( cmd, cb ) {
     client.observe( cmd, function( msg ) {
       try {
-        cb.apply( cb, arguments )
+        return cb.apply( cb, arguments )
       } catch ( e ) {
         logger.debug( e, e.stack )
         msg.reply( "Plugin %s threw an error: %s"
@@ -75,7 +75,7 @@ const Mediator = function( client, plugin ) {
     const cb = args.pop()
         , safecb = function( msg /*oldcb, args...*/ ) {
       try {
-        cb.apply( cb, arguments )
+        return cb.apply( cb, arguments )
       } catch ( e ) {
         logger.debug( e, e.stack )
         msg.reply( "Plugin %s threw an error: %s"
@@ -87,10 +87,6 @@ const Mediator = function( client, plugin ) {
   }
 }
 
-// Core is a privileged plugin, with access to full client.
-const corePlugin = require( path.join( __dirname, "core" ) )
-corePlugin.load( client )
-
 /** Load plugins, if any
  *  I want to add `plugDir' to Node's module paths, tried many different ways
  *  but it seems module.js has decided on an array of paths before there's a
@@ -98,7 +94,7 @@ corePlugin.load( client )
  *  Hardcoding it to look *only* there instead, for the time being.
  */
 if ( client.config[ "plugins" ] )
-  client.config.plugins.forEach( function( plugName ) {
+  client.config[ "plugins" ].forEach( function( plugName ) {
     const plugin = require( path.join( plugDir, plugName ) )
         // Hmm, I don't like having to create a new one for each plugin...
         , mediator = new Mediator( client, plugin )
@@ -109,3 +105,13 @@ if ( client.config[ "plugins" ] )
     } else
       logger.debug( "Plugin %s failed to load", plugin.name )
   } )
+
+/** Core is a privileged plugin, with access to full client.
+ *  It also does many silly things, so we load it last, giving useful commands
+ *  the opportunity to STATUS.STOP them.
+ *  @todo I don't like that it's hardcoded like this, would be nice if plugins
+ *        had privileges, so that it could live in the plugins repo, and would
+ *        not need this additional code.
+ */
+const corePlugin = require( path.join( __dirname, "core" ) )
+corePlugin.load( client )
